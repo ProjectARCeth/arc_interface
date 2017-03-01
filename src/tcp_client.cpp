@@ -136,117 +136,22 @@ void tcp_client::parser(std::string s) {
 }
 
 void tcp_client::publish(){
-  // if(msg_type_== "IMU")// && header2=="IMU")
-  // {
-  //   pub_ = n_.advertise<sensor_msgs::Imu>("IMU",5);
-  //   sensor_msgs::Imu msg;
-
-  //   //wrong coordinate systems: correction
-  //   float x_angle_ori;      			//Roll
-  //   float y_angle_ori;      			//Pitch
-  //   float z_angle_ori;     			//Yaw
-	
-  //   // making sure, yaw is 0 at the beginning
-  //   if (firstTime){
-  //       z_angle_ori_old=-values_[2];
-  //       firstTime=false;
-  //   }
-
-  //   x_angle_ori=values_[1];      		//Roll
-  //   y_angle_ori=values_[0];      		//Pitch
-  //   z_angle_ori=-values_[2]-z_angle_ori_old;     //Yaw
-
-  //   float x_accel=values_[4];
-  //   float y_accel=values_[3];
-  //   float z_accel=-values_[5];
-
-  //   float x_angle_vel=-values_[7];
-  //   float y_angle_vel=values_[6];
-  //   float z_angle_vel=values_[8];
-
-  //   msg.header.stamp = ros::Time::now();
-  //   msg.header.frame_id="odom";
-
-  //   // transforming angles into quaternions for imu message
-  //   tf::Quaternion q_tf;
-  //   q_tf.setRPY(x_angle_ori,y_angle_ori,z_angle_ori);
-  //   geometry_msgs::Quaternion q_qm;
-  //   tf::quaternionTFToMsg(q_tf, q_qm);
-
-  //   msg.orientation=q_qm;
-  //   msg.orientation_covariance[0]=x_angle_ori;
-  //   msg.orientation_covariance[1]=y_angle_ori;
-  //   msg.orientation_covariance[2]=z_angle_ori;
-
-  //   msg.angular_velocity.x=x_angle_vel;
-  //   msg.angular_velocity.y=y_angle_vel;
-  //   msg.angular_velocity.z=z_angle_vel;
-
-  //   msg.linear_acceleration.x=x_accel;
-  //   msg.linear_acceleration.y=y_accel;
-  //   msg.linear_acceleration.z=z_accel;
-
-  //   pub_.publish(msg);
-  //   ROS_INFO_ONCE("Topic %s has been published.",topic.c_str());
-  //   }
-  //   else if(msg_type_== "Float64")
-  //   {
-  //     pub_ = n_.advertise<std_msgs::Float64>(topic,5);
-  //     std_msgs::Float64 msg;
-
-  //     msg.data = values_[0];
-
-  //     pub_.publish(msg);
-  //     ROS_INFO_ONCE("Topic %s has been published.",topic.c_str());
-
-  //   }
-  //   else if(msg_type_==  "Float64MultiArray") 	// Lambdas etc. 
-  //   {
-  //     pub_ = n_.advertise<std_msgs::Float64MultiArray>(topic,5);
-  //     std_msgs::Float64MultiArray msg;
-
-  //     for(int i=0;i<values_.size();i++) msg.data.push_back(values_[i]);
-      
-  //     pub_.publish(msg);
-  //     ROS_INFO_ONCE("Topic %s has been published.",topic.c_str());
-
-  //   }
-  //   else if(msg_type_==  "tcp_server::ScalevoWheels") // Encoder data
-  //   {
-
-  //     pub_ = n_.advertise<tcp_server::ScalevoWheels>(topic,1);
-  //     tcp_server::ScalevoWheels msg;
-
-  //     msg.header.stamp = ros::Time::now();
-  //     msg.header.frame_id="odom";
-
-  //     msg.travel[0]=values_[0]*2*PI;
-  //     msg.travel[1]=values_[1]*2*PI;
-
-  //     msg.speed[0]=values_[2]*2*PI/60;           // RTM to rad/s
-  //     msg.speed[1]=values_[3]*2*PI/60;           // RPM to rad/s
-
-  //     msg.travel_tracks[0]=values_[4];           // Achtung nicht integriert... [0,1]--> nicht getestet
-  //     msg.travel_tracks[1]=values_[5];           // Achtung nicht integriert....[0,1] --> nicht getestet
-
-  //     pub_.publish(msg);
-  //     ROS_INFO_ONCE("Topic %s has been published.",topic.c_str());
-  //   }
-  //   else if(msg_type_== "String")			// CMD, MSG, ERR Messages from myRIO
-  //   {
-
-  //     pub_ = n_.advertise<std_msgs::String>(topic,1);
-  //     std_msgs::String msg;
-  //     msg.data=string_message;
-  //     ROS_INFO("Messages in scainfo: %s",msg.data.c_str());
-
-  //     pub_.publish(msg);
-  //     ROS_INFO_ONCE("Topic %s has been published.",topic.c_str());
-  //   }
-  //   else						// unknown stuff
-  //   {
-  //     ROS_ERROR("Incorrect msg_type: %s",msg_type_.c_str());
-  //   }
+    if(msg_type_== "Float64"){
+      pub_ = node_.advertise<std_msgs::Float64>(topic_,5);
+      std_msgs::Float64 msg;
+      msg.data = values_[0];
+      pub_.publish(msg);
+      ROS_INFO_ONCE("Topic %s has been published.",topic_.c_str());
+    }
+    else if(msg_type_== "String"){
+      pub_ = node_.advertise<std_msgs::String>(topic_,1);
+      std_msgs::String msg;
+      msg.data=string_message;
+      ROS_INFO("Messages in scainfo: %s",msg.data.c_str());
+      pub_.publish(msg);
+      ROS_INFO_ONCE("Topic %s has been published.",topic_.c_str());
+    }
+    else ROS_ERROR("Incorrect msg_type: %s",msg_type_.c_str());
 }
 
 //Send data to the connected host

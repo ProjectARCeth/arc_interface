@@ -76,13 +76,14 @@ bool conn(std::string address , int port){
         }
     }
     else {}
-    //Śetup address structure (IP to machineIP).
+    //Śetup address structure (IP to machineIP), firstly checking if given address
+    //is a real IP address.
     if(inet_addr(address.c_str()) == -1){
         std::cout << "Inet address" << std::endl;
         struct hostent *he;
         struct in_addr **addr_list;
         //Resolve the hostname, its not an ip address
-        if ( (he = gethostbyname( address.c_str() ) ) == NULL){
+        if ( (he = gethostbyname(address.c_str())) == NULL){
             herror("gethostbyname");
             std::cout<<"Failed to resolve hostname\n";
             return false;
@@ -96,7 +97,7 @@ bool conn(std::string address , int port){
         }
     }
     else tcp_client::server.sin_addr.s_addr = inet_addr(address.c_str());
-    //Resolve the port.
+    //Setup machine port.
     tcp_client::server.sin_family = AF_INET;
     tcp_client::server.sin_port = htons(port);
     //Connect to remote server.
@@ -107,8 +108,6 @@ bool conn(std::string address , int port){
     std::cout << "sin_family: " << tcp_client::server.sin_family << std::endl;
     std::cout << "sin_port: " << tcp_client::server.sin_port << std::endl;
     std::cout << "server_length: " << sizeof(tcp_client::server) << std::endl;
-    //Create server struct.
-    struct sockaddr* server_in;
     if(connect(tcp_client::sock, (struct sockaddr *)&tcp_client::server, sizeof(tcp_client::server)) < 0){
         perror("connect failed. Error");
         return false;
