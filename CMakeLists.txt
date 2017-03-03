@@ -3,24 +3,18 @@ project(arc_interface)
 
 find_package(catkin_simple 0.1.0 REQUIRED COMPONENTS
   roscpp
-  rospy
   std_msgs
-  catkin_simple
-  REQUIRED
+  arc_msgs
+  catkin_simple REQUIRED
 )
 
 catkin_simple(ALL_DEPS_REQUIRED)
 
-cs_add_library(${PROJECT_NAME}
-	src/tcp_client.cpp
-)
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
-
 add_executable(udp_client src/main.cpp)
-target_link_libraries(udp_client ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(udp_client ${catkin_LIBRARIES})
+
+add_executable(conversion_test test/conversion_test.cpp)
+target_link_libraries(conversion_test ${catkin_LIBRARIES})
 
 cs_install()
 cs_export()
