@@ -13,7 +13,6 @@
 
 //Define Constants.
 const int BUFLEN = 512;
-const int MSG_SIZE = 5;
 int MY_PORT;
 int NI_PORT;
 int QUEUE_LENGTH;
@@ -113,8 +112,8 @@ void convertStringToCharArray(std::string line, char* buffer){
 }
 
 double getValueFromMsg(std::string msg){
-  //Get value string (substracting ; and beginning behind : ).
-  std::string value_string(msg, 3, msg.length()-2);
+  //Get value string (beginning behind : ).
+  std::string value_string(msg, 3, msg.length()-1);
   //Convert to number.
   char buffer[BUFLEN];
   convertStringToCharArray(value_string, buffer);
@@ -147,7 +146,7 @@ void notstopCallback(const std_msgs::Bool::ConstPtr& msg){
   //Send notstop iff true.
   if(msg->data == true){
   }
-  std::string notstop_string = "hr:1;";
+  std::string notstop_string = "hr:1";
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending notstop");
 }
@@ -194,11 +193,11 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   double vel_should = msg->speed;
   double steering_should = msg->steering_angle;
   //Sending to NI.
-  std::string vel_string = "vs:" + convertDoubleToString(vel_should) + ";";
+  std::string vel_string = "vs:" + convertDoubleToString(vel_should);
   convertStringToCharArray(vel_string, buffer_out);
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_should"); 
-  std::string steering_string = "vs:" + convertDoubleToString(steering_should) + ";";
+  std::string steering_string = "ss:" + convertDoubleToString(steering_should);
   convertStringToCharArray(steering_string, buffer_out);
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending steering_should");  
@@ -211,7 +210,7 @@ void velocityCallback(const arc_msgs::State::ConstPtr& msg){
   double v_z = msg->pose_diff.twist.linear.z;
   double vel = sqrt(v_x*v_x + v_y*v_y + v_z*v_z);
   //Sending to NI.
-  std::string vel_string = "vi:" + convertDoubleToString(vel) + ";";
+  std::string vel_string = "vi:" + convertDoubleToString(vel);
   convertStringToCharArray(vel_string, buffer_out);
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_state");

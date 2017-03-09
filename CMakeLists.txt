@@ -16,6 +16,12 @@ target_link_libraries(udp_client ${catkin_LIBRARIES})
 add_executable(conversion_test test/conversion_test.cpp)
 target_link_libraries(conversion_test ${catkin_LIBRARIES})
 
+add_executable(dSpace test/dSpace.cpp)
+target_link_libraries(dSpace ${catkin_LIBRARIES})
+
+add_executable(usb_NI test/usb_NI.cpp)
+target_link_libraries(usb_NI ${catkin_LIBRARIES})
+
 cs_install()
 cs_export()
 

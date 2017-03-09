@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <iostream>
+#include <opencv/cv.h>
 #include <ros/ros.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +24,8 @@ int main(int argc, char** argv){
   std::cout << array << std::endl;
   double value = getValueFromMsg(str);
   std::cout << convertDoubleToString(value) << std::endl;
+  //Getting temperature.
+  for(int i=0; i<100; ++i) system("sensors");
   return 0;
 }
 
