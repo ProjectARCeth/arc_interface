@@ -13,8 +13,9 @@
 const int BUFLEN = 512;
 int MY_PORT = 8010;
 int NI_PORT = 8001;
-std::string STELLGROESSEN_TOPIC = "/stellgroessen_safe";
-std::string STEERING_CURRENT_TOPIC = "/state_steering_angle";
+float MAX_STEERING_ANGLE;
+std::string STELLGROESSEN_TOPIC;
+std::string STEERING_CURRENT_TOPIC;
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
 char buffer_in[BUFLEN];
@@ -39,6 +40,10 @@ int main(int argc, char** argv){
   //Init ros.
   ros::init(argc, argv, "steering_test");
   ros::NodeHandle node;
+  //Getting parameters.
+  node.getParam("/erod/MAX_STEERING_ANGLE", MAX_STEERING_ANGLE);
+  node.getParam("/topic/STELLGROESSEN_SAFE", STELLGROESSEN_TOPIC);
+  node.getParam("/topic/STATE_STEERING_ANGLE", STEERING_CURRENT_TOPIC);
   //Initialise addresses.
   setUpNetwork();
   if ((sock=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) printErrorAndFinish("socket");
@@ -48,12 +53,12 @@ int main(int argc, char** argv){
   //Listening for and sending data.
   while(ros::ok()){
     //Receiving.
-    int recv_len;
-    if ((recv_len = recvfrom(sock, buffer_in, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) 
-           printErrorAndFinish("receiving");
-    std::string buffer_in_string = convertCharArrayToString(buffer_in, recv_len);
-    std::cout << buffer_in << std::endl;
-    handleReceivedMsg(buffer_in_string);
+    // int recv_len;
+    // if ((recv_len = recvfrom(sock, buffer_in, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) 
+    //        printErrorAndFinish("receiving");
+    // std::string buffer_in_string = convertCharArrayToString(buffer_in, recv_len);
+    // std::cout << "Received: " << buffer_in_string << std::endl;
+    // handleReceivedMsg(buffer_in_string);
     //Sending.
     ros::spinOnce();
   }
@@ -133,11 +138,11 @@ void setUpRosInterface(ros::NodeHandle* node){
 }
 
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
-  //Getting stellgroessen.
-  double vel_should = msg->speed;
-  double steering_should = msg->steering_angle;
+  //Getting stellgroessen (Shifting bis mitte).
+  double steering_should = msg->steering_angle + 200; 
+  std::cout << "Sent: " << steering_should << std::endl;
   //Sending to NI.
-  std::string steering_string = "ss:" + convertDoubleToString(steering_should);
+  std::string steering_string = convertDoubleToString(steering_should);
   convertStringToCharArray(steering_string, buffer_out);
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending steering_should");  
