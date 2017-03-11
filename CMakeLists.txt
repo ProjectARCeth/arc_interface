@@ -16,6 +16,9 @@ target_link_libraries(udp_client ${catkin_LIBRARIES})
 add_executable(conversion_test test/conversion_test.cpp)
 target_link_libraries(conversion_test ${catkin_LIBRARIES})
 
+add_executable(steering_test test/steering_test.cpp)
+target_link_libraries(steering_test ${catkin_LIBRARIES})
+
 cs_install()
 cs_export()
 
