@@ -15,7 +15,7 @@
   <node name="ps_control" type="ps_control" pkg="arc_viewer" output="screen"/>	
 
  <!-- starting NI client -->
- <node name="steering_test" type="steering_test" pkg="arc_interface" output="screen" />
+ <node name="controller_test" type="controller_test" pkg="arc_interface" output="screen" />
 
  
 </launch>

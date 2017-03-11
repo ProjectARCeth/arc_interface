@@ -205,7 +205,7 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
 
 void velocityCallback(const arc_msgs::State::ConstPtr& msg){
   //Calculating velocity.
-  double vel = msg->pose_diff.data;
+  double vel = msg->pose_diff;
   //Sending to NI.
   std::string vel_string = "vi:" + convertDoubleToString(vel);
   convertStringToCharArray(vel_string, buffer_out);

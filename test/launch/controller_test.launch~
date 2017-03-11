@@ -12,10 +12,10 @@
   <node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostic_aggregator" >
     <rosparam command="load" file="$(find ps3joy)/diagnostics.yaml" />
   </node>
-  <node name="ps_control" type="ps_control" pkg="arc_interface" output="screen"/>	
+  <node name="ps_control" type="ps_control" pkg="arc_viewer" output="screen"/>	
 
  <!-- starting NI client -->
- <node name="steering_test" type="steering_test" pkg="arc_interface" output="screen" />
+ <node name="controller_test" type="steering_test" pkg="arc_interface" output="screen" />
 
  
 </launch>

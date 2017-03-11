@@ -15,14 +15,11 @@ catkin_simple(ALL_DEPS_REQUIRED)
 add_executable(udp_client src/main.cpp)
 target_link_libraries(udp_client ${catkin_LIBRARIES})
 
-add_executable(ps_control src/ps_control.cpp)
-target_link_libraries(ps_control ${catkin_LIBRARIES})
-
 add_executable(conversion_test test/conversion_test.cpp)
 target_link_libraries(conversion_test ${catkin_LIBRARIES})
 
-add_executable(steering_test test/steering_test.cpp)
-target_link_libraries(steering_test ${catkin_LIBRARIES})
+add_executable(controller_test test/controller_test.cpp)
+target_link_libraries(controller_test ${catkin_LIBRARIES})
 
 cs_install()
 cs_export()

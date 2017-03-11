@@ -13,6 +13,7 @@
 const int BUFLEN = 512;
 int MY_PORT = 8010;
 int NI_PORT = 8001;
+float MAX_STEERING_ANGLE;
 std::string STELLGROESSEN_TOPIC;
 std::string STEERING_CURRENT_TOPIC;
 //Network.
@@ -43,6 +44,7 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "steering_test");
   ros::NodeHandle node;
   //Getting parameters.
+  node.getParam("/erod/MAX_STEERING_ANGLE", MAX_STEERING_ANGLE);
   node.getParam("/topic/STELLGROESSEN_SAFE", STELLGROESSEN_TOPIC);
   node.getParam("/topic/STATE_STEERING_ANGLE", STEERING_CURRENT_TOPIC);
   //Initialise addresses.
@@ -81,6 +83,7 @@ void analogCallback(const std_msgs::Float64::ConstPtr& msg){
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending analog input");  
   }
+  
 }
 
 std::string convertCharArrayToString(char array[BUFLEN], int size){
