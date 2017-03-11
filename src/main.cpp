@@ -205,10 +205,7 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
 
 void velocityCallback(const arc_msgs::State::ConstPtr& msg){
   //Calculating velocity.
-  double v_x = msg->pose_diff.twist.linear.x;
-  double v_y = msg->pose_diff.twist.linear.y;
-  double v_z = msg->pose_diff.twist.linear.z;
-  double vel = sqrt(v_x*v_x + v_y*v_y + v_z*v_z);
+  double vel = msg->pose_diff.data;
   //Sending to NI.
   std::string vel_string = "vi:" + convertDoubleToString(vel);
   convertStringToCharArray(vel_string, buffer_out);
@@ -216,25 +213,3 @@ void velocityCallback(const arc_msgs::State::ConstPtr& msg){
         printErrorAndFinish("sending velocity_state");
   std::cout << "sent data: " << vel_string << std::endl;
 }
-
-//ToDo: Sizeof oder len vom Buffer_out in sendto ?
-
-
-  // double i = 0;
-  // while(1){
-  //    std::cout<<("Waiting for data...")<<std::endl;
-  //    fflush(stdout);
-  //    //Receiving.
-  //    i = i +1;
-  //    convertStringToCharArray("vi:"+convertDoubleToString(i));
-  //    if(i >= 5) i = 0;
-  //    int recv_len;
-  //    if ((recv_len = recvfrom(sock, buffer_in, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) 
-  //       printErrorAndFinish("receiving");
-  //    //Sending.
-  //    if (sendto(sock, buffer_out, recv_len, 0, (struct sockaddr*) &si_NI, slen) == -1) 
-  //       printErrorAndFinish("sending");
-  //    //Printing data.
-  //    std::cout << "Received data: " << buffer_in << std::endl;
-  //    std::cout << "Sended data: " << buffer_out << std::endl;
-  // } 
