@@ -18,8 +18,6 @@ std::string STELLGROESSEN_TOPIC;
 std::string STEERING_CURRENT_TOPIC;
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
-char buffer_in[BUFLEN];
-char buffer_out[BUFLEN];
 int sock;
 socklen_t slen;
 //Subscriber and publisher.
@@ -31,7 +29,6 @@ ros::Subscriber stellgroessen_should_sub;
 void analogCallback(const std_msgs::Float64::ConstPtr& msg);
 std::string convertCharArrayToString(char array[BUFLEN], int size);
 std::string convertDoubleToString(double value);
-void convertStringToCharArray(std::string line, char* buffer);
 double getValueFromMsg(std::string msg);
 void handleReceivedMsg(std::string msg);
 void printErrorAndFinish(std::string reason);
@@ -57,6 +54,7 @@ int main(int argc, char** argv){
   while(ros::ok()){
     //Receiving.
     // int recv_len;
+    // char buffer_in[BUFLEN];
     // if ((recv_len = recvfrom(sock, buffer_in, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) 
     //        printErrorAndFinish("receiving");
     // std::string buffer_in_string = convertCharArrayToString(buffer_in, recv_len);
@@ -73,13 +71,14 @@ void analogCallback(const std_msgs::Float64::ConstPtr& msg){
   double voltage = msg->data; 
   if(voltage < 0){
     std::string acc_string = "ab:" + convertDoubleToString(-voltage);
-    convertStringToCharArray(acc_string, buffer_out);
+    const char *buffer_out = acc_string.c_str();
     if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending analog input");  
   }
   if(voltage > 0){
   std::string acc_string = "aa:" + convertDoubleToString(voltage);
-  convertStringToCharArray(acc_string, buffer_out);
+  // convertStringToCharArray(acc_string, buffer_out);
+  const char *buffer_out = acc_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending analog input");  
   }
@@ -100,18 +99,11 @@ std::string convertDoubleToString(double value){
   return stream.str();
 }
 
-void convertStringToCharArray(std::string line, char* buffer){
-  for (int i=0; i<line.size(); ++i){
-    buffer[i] = line[i];
-  }
-}
-
 double getValueFromMsg(std::string msg){
   //Get value string (beginning behind : ).
   std::string value_string(msg, 3, msg.length()-1);
   //Convert to number.
-  char buffer[BUFLEN];
-  convertStringToCharArray(value_string, buffer);
+  const char *buffer = value_string.c_str();
   double value = atof(buffer);
   return value;
 }
@@ -161,9 +153,9 @@ void setUpRosInterface(ros::NodeHandle* node){
 
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   //Sending steering angle.
-  double steering_should = msg->steering_angle + 200; 
+  double steering_should = msg->steering_angle + MAX_STEERING_ANGLE; 
   std::string steering_string = "ss:" + convertDoubleToString(steering_should);
-  convertStringToCharArray(steering_string, buffer_out);
+  const char *buffer_out = steering_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending steering_should");  
 }

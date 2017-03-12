@@ -27,8 +27,6 @@ std::string STEERING_CURRENT_TOPIC;
 std::string VELOCITY_CURRENT_TOPIC;
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
-char buffer_in[BUFLEN];
-char buffer_out[BUFLEN];
 int sock;
 socklen_t slen;
 //Subscriber and publisher.
@@ -44,7 +42,6 @@ ros::Subscriber velocity_current_sub;
 //Declaration of functions.
 std::string convertCharArrayToString(char array[BUFLEN], int size);
 std::string convertDoubleToString(double value);
-void convertStringToCharArray(std::string line, char* buffer);
 double getValueFromMsg(std::string msg);
 void handleReceivedMsg(std::string msg);
 void notstopCallback(const std_msgs::Bool::ConstPtr& msg);
@@ -81,6 +78,7 @@ int main(int argc, char** argv){
   while(ros::ok()){
     //Receiving.
     int recv_len;
+    char buffer_in[BUFLEN];
     if ((recv_len = recvfrom(sock, buffer_in, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1) 
            printErrorAndFinish("receiving");
     std::string buffer_in_string = convertCharArrayToString(buffer_in, recv_len);
@@ -105,18 +103,11 @@ std::string convertDoubleToString(double value){
   return stream.str();
 }
 
-void convertStringToCharArray(std::string line, char* buffer){
-  for (int i=0; i<line.size(); ++i){
-    buffer[i] = line[i];
-  }
-}
-
 double getValueFromMsg(std::string msg){
   //Get value string (beginning behind : ).
   std::string value_string(msg, 3, msg.length()-1);
   //Convert to number.
-  char buffer[BUFLEN];
-  convertStringToCharArray(value_string, buffer);
+  const char *buffer = value_string.c_str();
   double value = atof(buffer);
   return value;
 }
@@ -147,6 +138,7 @@ void notstopCallback(const std_msgs::Bool::ConstPtr& msg){
   if(msg->data == true){
   }
   std::string notstop_string = "hr:1";
+  const char *buffer_out = notstop_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending notstop");
 }
@@ -194,12 +186,12 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   double steering_should = msg->steering_angle;
   //Sending to NI.
   std::string vel_string = "vs:" + convertDoubleToString(vel_should);
-  convertStringToCharArray(vel_string, buffer_out);
-  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+  const char *buffer_out_vel = vel_string.c_str();
+  if (sendto(sock, buffer_out_vel, sizeof(buffer_out_vel), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_should"); 
   std::string steering_string = "ss:" + convertDoubleToString(steering_should);
-  convertStringToCharArray(steering_string, buffer_out);
-  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+  const char *buffer_out_steering = steering_string.c_str();
+  if (sendto(sock, buffer_out_steering, sizeof(buffer_out_steering), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending steering_should");  
 }
 
@@ -208,7 +200,7 @@ void velocityCallback(const arc_msgs::State::ConstPtr& msg){
   double vel = msg->pose_diff;
   //Sending to NI.
   std::string vel_string = "vi:" + convertDoubleToString(vel);
-  convertStringToCharArray(vel_string, buffer_out);
+  const char *buffer_out = vel_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_state");
   std::cout << "sent data: " << vel_string << std::endl;
