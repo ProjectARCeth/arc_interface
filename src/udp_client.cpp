@@ -24,6 +24,10 @@ std::string REAR_LEFT_TOPIC;
 std::string REAR_RIGHT_TOPIC;
 std::string STELLGROESSEN_TOPIC;
 std::string STEERING_CURRENT_TOPIC;
+std::string VCU_CONTROLLER_STATE_TOPIC;
+std::string VCU_LAUNCHING_COMMAND_TOPIC;
+std::string VCU_PARAMETER_MODE_TOPIC;
+std::string VCU_WORKING_INTERFACE_TOPIC;
 std::string VELOCITY_CURRENT_TOPIC;
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
@@ -36,8 +40,13 @@ ros::Publisher notstop_NI_pub;
 ros::Publisher rear_left_pub;
 ros::Publisher rear_right_pub;
 ros::Publisher steering_current_pub;
+ros::Publisher vcu_controller_state_pub;
+ros::Publisher vcu_working_pub;
 ros::Subscriber notstop_sub;
 ros::Subscriber stellgroessen_should_sub;
+ros::Subscriber vcu_launching_sub;
+ros::Subscriber vcu_parameter_sub;
+ros::Subscriber vcu_ping_sub;
 ros::Subscriber velocity_current_sub;
 //Declaration of functions.
 std::string convertCharArrayToString(char array[BUFLEN], int size);
@@ -49,6 +58,9 @@ void printErrorAndFinish(std::string reason);
 void setUpNetwork();
 void setUpRosInterface(ros::NodeHandle* node);
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg);
+void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg);
+void vcuParameterModeCallback(const std_msgs::Float64::ConstPtr& msg);
+void vcuPingCallback(const std_msgs::Float64::ConstPtr& msg);
 void velocityCallback(const arc_msgs::State::ConstPtr& msg);
 
 int main(int argc, char** argv){
@@ -59,15 +71,19 @@ int main(int argc, char** argv){
   node.getParam("/general/MY_PORT", MY_PORT);
   node.getParam("/general/NI_PORT", NI_PORT);
   node.getParam("/general/QUEUE_LENGTH", QUEUE_LENGTH);
-  node.getParam("/topic/WHEEL_FRONT_LEFT", FRONT_LEFT_TOPIC);
-  node.getParam("/topic/WHEEL_FRONT_RIGHT", FRONT_RIGHT_TOPIC);
   node.getParam("/topic/NOTSTOP", NOTSTOP_TOPIC);
   node.getParam("/topic/NOTSTOP_NI_TOPIC", NOTSTOP_NI_TOPIC);
-  node.getParam("/topic/WHEEL_REAR_LEFT", REAR_LEFT_TOPIC);
-  node.getParam("/topic/WHEEL_REAR_RIGHT", REAR_RIGHT_TOPIC);
   node.getParam("/topic/STELLGROESSEN_SAFE", STELLGROESSEN_TOPIC);
   node.getParam("/topic/STATE_STEERING_ANGLE", STEERING_CURRENT_TOPIC);
   node.getParam("/topic/STATE", VELOCITY_CURRENT_TOPIC);
+  node.getParam("/topic/VCU_LAUNCHING_COMMAND", VCU_LAUNCHING_COMMAND_TOPIC);
+  node.getParam("/topic/VCU_PARAMETER_MODE", VCU_PARAMETER_MODE_TOPIC);
+  node.getParam("/topic/VCU_WORKING_INTERFACE", VCU_WORKING_INTERFACE_TOPIC);
+  node.getParam("/topic/VCU_CONTROLLER_STATE", VCU_CONTROLLER_STATE_TOPIC);
+  node.getParam("/topic/WHEEL_FRONT_LEFT", FRONT_LEFT_TOPIC);
+  node.getParam("/topic/WHEEL_FRONT_RIGHT", FRONT_RIGHT_TOPIC);
+  node.getParam("/topic/WHEEL_REAR_LEFT", REAR_LEFT_TOPIC);
+  node.getParam("/topic/WHEEL_REAR_RIGHT", REAR_RIGHT_TOPIC);
   //Initialise addresses.
   setUpNetwork();
   if ((sock=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) printErrorAndFinish("socket");
@@ -114,22 +130,28 @@ double getValueFromMsg(std::string msg){
 
 void handleReceivedMsg(std::string msg){
   //Get kind of msg and value.
-  std::string kind(msg, 0, 1);
+  std::string kind = msg.substr(0,2);
   double value = getValueFromMsg(msg);
   //Creating ros msg.
   std_msgs::Float64 ros_msg;
   ros_msg.data = value;
   //Answers.
-  if(kind == "si") steering_current_pub.publish(ros_msg);
+  if(kind == "si"){
+    std_msgs::Float64 steering_msg;
+    steering_msg.data = (value-1000)*M_PI/180;
+    steering_current_pub.publish(steering_msg);
+  } 
   else if(kind == "fl") front_left_pub.publish(ros_msg);
   else if(kind == "fr") front_right_pub.publish(ros_msg);
-  else if(kind == "rl") rear_left_pub.publish(ros_msg);
-  else if(kind == "rr") rear_right_pub.publish(ros_msg);
+  else if(kind == "rl") rear_left_pub.publish(ros_msg); 
+  else if(kind == "rr") rear_right_pub.publish(ros_msg); 
   else if(kind == "hn"){
     std_msgs::Bool ros_bool_msg;
     ros_bool_msg.data = true;
     notstop_NI_pub.publish(ros_bool_msg);
   }
+  else if(kind == "am") vcu_controller_state_pub.publish(ros_msg);
+  else if(kind == "cc") vcu_working_pub.publish(ros_msg);
   else std::cout<<"ARC INTERFACE: Cannot assign msg " << msg << std::endl;
  }
 
@@ -160,7 +182,7 @@ void setUpNetwork(){
   //NI (destination) address.
   si_NI.sin_family = AF_INET;
   si_NI.sin_port = htons(NI_PORT);
-  si_NI.sin_addr.s_addr = inet_addr("10.0.0.5");
+  si_NI.sin_addr.s_addr = inet_addr("10.0.0.8");
   //Socket length.
   slen = sizeof(si_other);
 }
@@ -173,26 +195,59 @@ void setUpRosInterface(ros::NodeHandle* node){
   rear_left_pub = node->advertise<std_msgs::Float64>(REAR_LEFT_TOPIC, QUEUE_LENGTH);
   rear_right_pub = node->advertise<std_msgs::Float64>(REAR_RIGHT_TOPIC, QUEUE_LENGTH);
   steering_current_pub = node->advertise<std_msgs::Float64>(STEERING_CURRENT_TOPIC, QUEUE_LENGTH);
+  vcu_controller_state_pub = node->advertise<std_msgs::Float64>(VCU_CONTROLLER_STATE_TOPIC, QUEUE_LENGTH);
+  vcu_working_pub = node->advertise<std_msgs::Bool>(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH);
   notstop_sub = node->subscribe(NOTSTOP_TOPIC, QUEUE_LENGTH, notstopCallback);
   stellgroessen_should_sub = node->subscribe(STELLGROESSEN_TOPIC, QUEUE_LENGTH, stellgroessenCallback);
+  vcu_launching_sub = node->subscribe(VCU_LAUNCHING_COMMAND_TOPIC, QUEUE_LENGTH, vcuLaunchingCallback);
+  vcu_parameter_sub = node->subscribe(VCU_PARAMETER_MODE_TOPIC, QUEUE_LENGTH, vcuParameterModeCallback);
+  vcu_ping_sub = node->subscribe(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH, vcuPingCallback);
   velocity_current_sub = node->subscribe(VELOCITY_CURRENT_TOPIC, QUEUE_LENGTH, velocityCallback);
-  //Sending initialised comment.
-  std::cout << std::endl << "ARC INTERFACE: Ros core initialised "<< std::endl;
 }
 
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
-  //Getting stellgroessen.
+  //Sending should velocity [m/s].
   double vel_should = msg->speed;
-  double steering_should = msg->steering_angle;
-  //Sending to NI.
   std::string vel_string = "vs:" + convertDoubleToString(vel_should);
   const char *buffer_out_vel = vel_string.c_str();
   if (sendto(sock, buffer_out_vel, sizeof(buffer_out_vel), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_should"); 
+  //Sending should steering angle [deg, shifted]. 
+  double steering_should = (msg->steering_angle)/M_PI*180 + 1000;
   std::string steering_string = "ss:" + convertDoubleToString(steering_should);
   const char *buffer_out_steering = steering_string.c_str();
   if (sendto(sock, buffer_out_steering, sizeof(buffer_out_steering), 0, (struct sockaddr*) &si_NI, slen) == -1) 
-        printErrorAndFinish("sending steering_should");  
+        printErrorAndFinish("sending steering_should"); 
+  std::cout << "Steering: " << steering_should << " Velocity: " << vel_should << std::endl;
+   
+}
+
+void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg){
+  //Start Controller if GUI button pushed and system ready.
+  std::string vcu_launching_string = "am:" + convertDoubleToString(1.0);
+  const char *buffer_out = vcu_launching_string.c_str();
+  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+        printErrorAndFinish("sending vcu launching");
+}
+
+void vcuParameterModeCallback(const std_msgs::Float64::ConstPtr& msg){
+  //Getting mode.
+  double vcu_mode = msg->data;
+  //Sending to NI.
+  std::string vcu_mode_string = "ec:" + convertDoubleToString(vcu_mode);
+  const char *buffer_out = vcu_mode_string.c_str();
+  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+        printErrorAndFinish("sending vcu parameter mode");
+}
+
+void vcuPingCallback(const std_msgs::Float64::ConstPtr& msg){
+  //Getting ping.
+  double ping = msg->data;
+  //Sending to NI.
+  std::string vcu_ping_string = "cc:" + convertDoubleToString(ping);
+  const char *buffer_out = vcu_ping_string.c_str();
+  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+        printErrorAndFinish("sending vcu ping");
 }
 
 void velocityCallback(const arc_msgs::State::ConstPtr& msg){
@@ -203,5 +258,4 @@ void velocityCallback(const arc_msgs::State::ConstPtr& msg){
   const char *buffer_out = vel_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_state");
-  std::cout << "sent data: " << vel_string << std::endl;
 }

@@ -12,7 +12,7 @@ find_package(catkin_simple 0.1.0 REQUIRED COMPONENTS
 
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_executable(udp_client src/main.cpp)
+add_executable(udp_client src/udp_client.cpp)
 target_link_libraries(udp_client ${catkin_LIBRARIES})
 
 add_executable(conversion_test test/conversion_test.cpp)
