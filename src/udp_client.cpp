@@ -196,7 +196,7 @@ void setUpRosInterface(ros::NodeHandle* node){
   rear_right_pub = node->advertise<std_msgs::Float64>(REAR_RIGHT_TOPIC, QUEUE_LENGTH);
   steering_current_pub = node->advertise<std_msgs::Float64>(STEERING_CURRENT_TOPIC, QUEUE_LENGTH);
   vcu_controller_state_pub = node->advertise<std_msgs::Float64>(VCU_CONTROLLER_STATE_TOPIC, QUEUE_LENGTH);
-  vcu_working_pub = node->advertise<std_msgs::Bool>(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH);
+  vcu_working_pub = node->advertise<std_msgs::Float64>(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH);
   notstop_sub = node->subscribe(NOTSTOP_TOPIC, QUEUE_LENGTH, notstopCallback);
   stellgroessen_should_sub = node->subscribe(STELLGROESSEN_TOPIC, QUEUE_LENGTH, stellgroessenCallback);
   vcu_launching_sub = node->subscribe(VCU_LAUNCHING_COMMAND_TOPIC, QUEUE_LENGTH, vcuLaunchingCallback);
@@ -224,7 +224,9 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
 
 void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg){
   //Start Controller if GUI button pushed and system ready.
-  std::string vcu_launching_string = "am:" + convertDoubleToString(1.0);
+  std::string vcu_launching_string;
+  if(!msg->data) vcu_launching_string = "am:" + convertDoubleToString(0.0);
+  if(msg->data) vcu_launching_string = "am:" + convertDoubleToString(1.0);
   const char *buffer_out = vcu_launching_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending vcu launching");
