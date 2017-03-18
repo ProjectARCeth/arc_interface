@@ -102,6 +102,12 @@ int main(int argc, char** argv){
     //Sending.
     ros::spinOnce();
   }
+  //Reseting to manuell mode.
+  std::string reset_string;
+  reset_string = "am:" + convertDoubleToString(0.0);
+  const char *buffer_out = reset_string.c_str();
+  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+        printErrorAndFinish("sending reseting");
   return 0;
 }
 
@@ -218,7 +224,7 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   const char *buffer_out_steering = steering_string.c_str();
   if (sendto(sock, buffer_out_steering, sizeof(buffer_out_steering), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending steering_should"); 
-  std::cout << "Steering: " << steering_should << " Velocity: " << vel_should << std::endl;
+  // std::cout << "Steering: " << steering_should << " Velocity: " << vel_should << std::endl;
    
 }
 
