@@ -13,6 +13,7 @@
 
 //Define Constants.
 const int BUFLEN = 512;
+float MAX_STEERING_ANGLE;
 int MY_PORT;
 int NI_PORT;
 int QUEUE_LENGTH;
@@ -68,6 +69,7 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "arc_interface");
   ros::NodeHandle node;
   //Get constants from yaml file.
+  node.getParam("/erod/MAX_STEERING_ANGLE", MAX_STEERING_ANGLE);
   node.getParam("/general/MY_PORT", MY_PORT);
   node.getParam("/general/NI_PORT", NI_PORT);
   node.getParam("/general/QUEUE_LENGTH", QUEUE_LENGTH);
@@ -90,6 +92,8 @@ int main(int argc, char** argv){
   if(bind(sock, (struct sockaddr*)&si_me, sizeof(si_me)) == -1) printErrorAndFinish("binding");
   //Initialise ros interface.
   setUpRosInterface(&node);
+  //Controlling sending rate.
+  ros::Rate rate(10);
   //Listening for and sending data.
   while(ros::ok()){
     //Receiving.
@@ -101,6 +105,7 @@ int main(int argc, char** argv){
     handleReceivedMsg(buffer_in_string);
     //Sending.
     ros::spinOnce();
+    rate.sleep();
   }
   //Reseting to manuell mode.
   std::string reset_string;
@@ -220,12 +225,13 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
         printErrorAndFinish("sending velocity_should"); 
   //Sending should steering angle [deg, shifted]. 
   double steering_should = (msg->steering_angle)/M_PI*180 + 1000;
+  if(steering_should < 1000 - MAX_STEERING_ANGLE) steering_should = 1000 - MAX_STEERING_ANGLE;
+  if(steering_should > 1000 + MAX_STEERING_ANGLE) steering_should = 1000 + MAX_STEERING_ANGLE;
   std::string steering_string = "ss:" + convertDoubleToString(steering_should);
   const char *buffer_out_steering = steering_string.c_str();
   if (sendto(sock, buffer_out_steering, sizeof(buffer_out_steering), 0, (struct sockaddr*) &si_NI, slen) == -1) 
-        printErrorAndFinish("sending steering_should"); 
-  // std::cout << "Steering: " << steering_should << " Velocity: " << vel_should << std::endl;
-   
+        printErrorAndFinish("sending steering_should");  
+  // std::cout << "Steering: " << buffer_out_steering << " Velocity: " << vel_should << std::endl;   
 }
 
 void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg){
