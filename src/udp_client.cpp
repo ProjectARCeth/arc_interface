@@ -93,7 +93,7 @@ int main(int argc, char** argv){
   //Initialise ros interface.
   setUpRosInterface(&node);
   //Controlling sending rate.
-  ros::Rate rate(10);
+  //ros::Rate rate(1000);
   //Listening for and sending data.
   while(ros::ok()){
     //Receiving.
@@ -105,7 +105,7 @@ int main(int argc, char** argv){
     handleReceivedMsg(buffer_in_string);
     //Sending.
     ros::spinOnce();
-    rate.sleep();
+    //rate.sleep();
   }
   //Reseting to manuell mode.
   std::string reset_string;
