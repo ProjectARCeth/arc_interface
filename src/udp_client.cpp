@@ -17,10 +17,6 @@ float MAX_STEERING_ANGLE;
 int MY_PORT;
 int NI_PORT;
 int QUEUE_LENGTH;
-std::string FRONT_LEFT_TOPIC;
-std::string FRONT_RIGHT_TOPIC;
-std::string NOTSTOP_TOPIC;
-std::string NOTSTOP_NI_TOPIC;
 std::string REAR_LEFT_TOPIC;
 std::string REAR_RIGHT_TOPIC;
 std::string STELLGROESSEN_TOPIC;
@@ -35,15 +31,11 @@ struct sockaddr_in si_me, si_other, si_NI;
 int sock;
 socklen_t slen;
 //Subscriber and publisher.
-ros::Publisher front_left_pub;
-ros::Publisher front_right_pub;
-ros::Publisher notstop_NI_pub;
 ros::Publisher rear_left_pub;
 ros::Publisher rear_right_pub;
 ros::Publisher steering_current_pub;
 ros::Publisher vcu_controller_state_pub;
 ros::Publisher vcu_working_pub;
-ros::Subscriber notstop_sub;
 ros::Subscriber stellgroessen_should_sub;
 ros::Subscriber vcu_launching_sub;
 ros::Subscriber vcu_parameter_sub;
@@ -73,8 +65,6 @@ int main(int argc, char** argv){
   node.getParam("/general/MY_PORT", MY_PORT);
   node.getParam("/general/NI_PORT", NI_PORT);
   node.getParam("/general/QUEUE_LENGTH", QUEUE_LENGTH);
-  node.getParam("/topic/NOTSTOP", NOTSTOP_TOPIC);
-  node.getParam("/topic/NOTSTOP_NI_TOPIC", NOTSTOP_NI_TOPIC);
   node.getParam("/topic/STELLGROESSEN_SAFE", STELLGROESSEN_TOPIC);
   node.getParam("/topic/STATE_STEERING_ANGLE", STEERING_CURRENT_TOPIC);
   node.getParam("/topic/STATE", VELOCITY_CURRENT_TOPIC);
@@ -82,8 +72,6 @@ int main(int argc, char** argv){
   node.getParam("/topic/VCU_PARAMETER_MODE", VCU_PARAMETER_MODE_TOPIC);
   node.getParam("/topic/VCU_WORKING_INTERFACE", VCU_WORKING_INTERFACE_TOPIC);
   node.getParam("/topic/VCU_CONTROLLER_STATE", VCU_CONTROLLER_STATE_TOPIC);
-  node.getParam("/topic/WHEEL_FRONT_LEFT", FRONT_LEFT_TOPIC);
-  node.getParam("/topic/WHEEL_FRONT_RIGHT", FRONT_RIGHT_TOPIC);
   node.getParam("/topic/WHEEL_REAR_LEFT", REAR_LEFT_TOPIC);
   node.getParam("/topic/WHEEL_REAR_RIGHT", REAR_RIGHT_TOPIC);
   //Initialise addresses.
@@ -93,7 +81,6 @@ int main(int argc, char** argv){
   //Initialise ros interface.
   setUpRosInterface(&node);
   //Controlling sending rate.
-  //ros::Rate rate(1000);
   //Listening for and sending data.
   while(ros::ok()){
     //Receiving.
@@ -105,7 +92,6 @@ int main(int argc, char** argv){
     handleReceivedMsg(buffer_in_string);
     //Sending.
     ros::spinOnce();
-    //rate.sleep();
   }
   //Reseting to manuell mode.
   std::string reset_string;
@@ -152,29 +138,12 @@ void handleReceivedMsg(std::string msg){
     steering_msg.data = (value-1000)*M_PI/180;
     steering_current_pub.publish(steering_msg);
   } 
-  else if(kind == "fl") front_left_pub.publish(ros_msg);
-  else if(kind == "fr") front_right_pub.publish(ros_msg);
   else if(kind == "rl") rear_left_pub.publish(ros_msg); 
   else if(kind == "rr") rear_right_pub.publish(ros_msg); 
-  else if(kind == "hn"){
-    std_msgs::Bool ros_bool_msg;
-    ros_bool_msg.data = true;
-    notstop_NI_pub.publish(ros_bool_msg);
-  }
   else if(kind == "am") vcu_controller_state_pub.publish(ros_msg);
   else if(kind == "cc") vcu_working_pub.publish(ros_msg);
   else std::cout<<"ARC INTERFACE: Cannot assign msg " << msg << std::endl;
  }
-
-void notstopCallback(const std_msgs::Bool::ConstPtr& msg){
-  //Send notstop iff true.
-  if(msg->data == true){
-  }
-  std::string notstop_string = "hr:1";
-  const char *buffer_out = notstop_string.c_str();
-  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
-        printErrorAndFinish("sending notstop");
-}
 
 void printErrorAndFinish(std::string reason){
   std::cout << "ARC_INTERFACE: Error due to " << reason << std::endl;
@@ -200,15 +169,11 @@ void setUpNetwork(){
 
 void setUpRosInterface(ros::NodeHandle* node){
   //Publisher and subscriber
-  front_left_pub = node->advertise<std_msgs::Float64>(FRONT_LEFT_TOPIC, QUEUE_LENGTH);
-  front_right_pub = node->advertise<std_msgs::Float64>(FRONT_RIGHT_TOPIC, QUEUE_LENGTH);
-  notstop_NI_pub = node->advertise<std_msgs::Bool>(NOTSTOP_NI_TOPIC, QUEUE_LENGTH);
   rear_left_pub = node->advertise<std_msgs::Float64>(REAR_LEFT_TOPIC, QUEUE_LENGTH);
   rear_right_pub = node->advertise<std_msgs::Float64>(REAR_RIGHT_TOPIC, QUEUE_LENGTH);
   steering_current_pub = node->advertise<std_msgs::Float64>(STEERING_CURRENT_TOPIC, QUEUE_LENGTH);
   vcu_controller_state_pub = node->advertise<std_msgs::Float64>(VCU_CONTROLLER_STATE_TOPIC, QUEUE_LENGTH);
   vcu_working_pub = node->advertise<std_msgs::Float64>(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH);
-  notstop_sub = node->subscribe(NOTSTOP_TOPIC, QUEUE_LENGTH, notstopCallback);
   stellgroessen_should_sub = node->subscribe(STELLGROESSEN_TOPIC, QUEUE_LENGTH, stellgroessenCallback);
   vcu_launching_sub = node->subscribe(VCU_LAUNCHING_COMMAND_TOPIC, QUEUE_LENGTH, vcuLaunchingCallback);
   vcu_parameter_sub = node->subscribe(VCU_PARAMETER_MODE_TOPIC, QUEUE_LENGTH, vcuParameterModeCallback);
@@ -230,8 +195,7 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   std::string steering_string = "ss:" + convertDoubleToString(steering_should);
   const char *buffer_out_steering = steering_string.c_str();
   if (sendto(sock, buffer_out_steering, sizeof(buffer_out_steering), 0, (struct sockaddr*) &si_NI, slen) == -1) 
-        printErrorAndFinish("sending steering_should");  
-  // std::cout << "Steering: " << buffer_out_steering << " Velocity: " << vel_should << std::endl;   
+        printErrorAndFinish("sending steering_should");     
 }
 
 void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg){
