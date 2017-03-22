@@ -31,6 +31,8 @@ std::string VELOCITY_CURRENT_TOPIC;
 struct sockaddr_in si_me, si_other, si_NI;
 int sock;
 socklen_t slen;
+//Notstop.
+bool SEND_NOTSTOP = true;
 //Subscriber and publisher.
 ros::Publisher rear_left_pub;
 ros::Publisher rear_right_pub;
@@ -145,6 +147,7 @@ void handleReceivedMsg(std::string msg){
   else if(kind == "rr") rear_right_pub.publish(ros_msg); 
   else if(kind == "am") vcu_controller_state_pub.publish(ros_msg);
   else if(kind == "cc") vcu_working_pub.publish(ros_msg);
+  else if(kind == "hn") SEND_NOTSTOP = false;
   else std::cout<<"ARC INTERFACE: Cannot assign msg " << msg << std::endl;
  }
 
@@ -152,9 +155,10 @@ void notstopCallback(const std_msgs::Bool::ConstPtr& msg){
   if(msg->data){
     std::string notstop_string = "hr";
     const char *buffer_out = notstop_string.c_str();
-    for (int i = 0; i < 100; ++i){
+    while(SEND_NOTSTOP){
         if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
-        printErrorAndFinish("sending notstop");
+          printErrorAndFinish("sending notstop");
+        ros::Duration(0.0005).sleep();
     }
   }
 }
