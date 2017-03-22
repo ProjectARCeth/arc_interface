@@ -17,6 +17,7 @@ float MAX_STEERING_ANGLE;
 int MY_PORT;
 int NI_PORT;
 int QUEUE_LENGTH;
+std::string NOTSTOP_TOPIC;
 std::string REAR_LEFT_TOPIC;
 std::string REAR_RIGHT_TOPIC;
 std::string STELLGROESSEN_TOPIC;
@@ -36,6 +37,7 @@ ros::Publisher rear_right_pub;
 ros::Publisher steering_current_pub;
 ros::Publisher vcu_controller_state_pub;
 ros::Publisher vcu_working_pub;
+ros::Subscriber notstop_sub;
 ros::Subscriber stellgroessen_should_sub;
 ros::Subscriber vcu_launching_sub;
 ros::Subscriber vcu_parameter_sub;
@@ -65,6 +67,7 @@ int main(int argc, char** argv){
   node.getParam("/general/MY_PORT", MY_PORT);
   node.getParam("/general/NI_PORT", NI_PORT);
   node.getParam("/general/QUEUE_LENGTH", QUEUE_LENGTH);
+  node.getParam("/topic/NOTSTOP", NOTSTOP_TOPIC);
   node.getParam("/topic/STELLGROESSEN_SAFE", STELLGROESSEN_TOPIC);
   node.getParam("/topic/STATE_STEERING_ANGLE", STEERING_CURRENT_TOPIC);
   node.getParam("/topic/STATE", VELOCITY_CURRENT_TOPIC);
@@ -145,6 +148,17 @@ void handleReceivedMsg(std::string msg){
   else std::cout<<"ARC INTERFACE: Cannot assign msg " << msg << std::endl;
  }
 
+void notstopCallback(const std_msgs::Bool::ConstPtr& msg){
+  if(msg->data){
+    std::string notstop_string = "hr";
+    const char *buffer_out = notstop_string.c_str();
+    for (int i = 0; i < 100; ++i){
+        if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+        printErrorAndFinish("sending notstop");
+    }
+  }
+}
+
 void printErrorAndFinish(std::string reason){
   std::cout << "ARC_INTERFACE: Error due to " << reason << std::endl;
   //Finish ros and program.
@@ -174,6 +188,7 @@ void setUpRosInterface(ros::NodeHandle* node){
   steering_current_pub = node->advertise<std_msgs::Float64>(STEERING_CURRENT_TOPIC, QUEUE_LENGTH);
   vcu_controller_state_pub = node->advertise<std_msgs::Float64>(VCU_CONTROLLER_STATE_TOPIC, QUEUE_LENGTH);
   vcu_working_pub = node->advertise<std_msgs::Float64>(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH);
+  notstop_sub = node->subscribe(NOTSTOP_TOPIC, QUEUE_LENGTH, notstopCallback);
   stellgroessen_should_sub = node->subscribe(STELLGROESSEN_TOPIC, QUEUE_LENGTH, stellgroessenCallback);
   vcu_launching_sub = node->subscribe(VCU_LAUNCHING_COMMAND_TOPIC, QUEUE_LENGTH, vcuLaunchingCallback);
   vcu_parameter_sub = node->subscribe(VCU_PARAMETER_MODE_TOPIC, QUEUE_LENGTH, vcuParameterModeCallback);
