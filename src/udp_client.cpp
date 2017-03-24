@@ -155,11 +155,8 @@ void notstopCallback(const std_msgs::Bool::ConstPtr& msg){
   if(msg->data){
     std::string notstop_string = "hr:1";
     const char *buffer_out = notstop_string.c_str();
-    while(SEND_NOTSTOP){
-        if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
+    if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
           printErrorAndFinish("sending notstop");
-        ros::Duration(0.0005).sleep();
-    }
   }
 }
 
