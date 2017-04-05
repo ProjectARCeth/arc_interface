@@ -26,7 +26,6 @@ std::string VCU_CONTROLLER_STATE_TOPIC;
 std::string VCU_LAUNCHING_COMMAND_TOPIC;
 std::string VCU_PARAMETER_MODE_TOPIC;
 std::string VCU_WORKING_INTERFACE_TOPIC;
-std::string VELOCITY_CURRENT_TOPIC;
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
 int sock;
@@ -44,7 +43,6 @@ ros::Subscriber stellgroessen_should_sub;
 ros::Subscriber vcu_launching_sub;
 ros::Subscriber vcu_parameter_sub;
 ros::Subscriber vcu_ping_sub;
-ros::Subscriber velocity_current_sub;
 //Declaration of functions.
 std::string convertCharArrayToString(char array[BUFLEN], int size);
 std::string convertDoubleToString(double value);
@@ -58,7 +56,6 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg);
 void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg);
 void vcuParameterModeCallback(const std_msgs::Float64::ConstPtr& msg);
 void vcuPingCallback(const std_msgs::Float64::ConstPtr& msg);
-void velocityCallback(const arc_msgs::State::ConstPtr& msg);
 
 int main(int argc, char** argv){
   //Init ros.
@@ -72,7 +69,6 @@ int main(int argc, char** argv){
   node.getParam("/topic/NOTSTOP", NOTSTOP_TOPIC);
   node.getParam("/topic/STELLGROESSEN_SAFE", STELLGROESSEN_TOPIC);
   node.getParam("/topic/STATE_STEERING_ANGLE", STEERING_CURRENT_TOPIC);
-  node.getParam("/topic/STATE", VELOCITY_CURRENT_TOPIC);
   node.getParam("/topic/VCU_LAUNCHING_COMMAND", VCU_LAUNCHING_COMMAND_TOPIC);
   node.getParam("/topic/VCU_PARAMETER_MODE", VCU_PARAMETER_MODE_TOPIC);
   node.getParam("/topic/VCU_WORKING_INTERFACE", VCU_WORKING_INTERFACE_TOPIC);
@@ -194,7 +190,6 @@ void setUpRosInterface(ros::NodeHandle* node){
   vcu_launching_sub = node->subscribe(VCU_LAUNCHING_COMMAND_TOPIC, QUEUE_LENGTH, vcuLaunchingCallback);
   vcu_parameter_sub = node->subscribe(VCU_PARAMETER_MODE_TOPIC, QUEUE_LENGTH, vcuParameterModeCallback);
   vcu_ping_sub = node->subscribe(VCU_WORKING_INTERFACE_TOPIC, QUEUE_LENGTH, vcuPingCallback);
-  velocity_current_sub = node->subscribe(VELOCITY_CURRENT_TOPIC, QUEUE_LENGTH, velocityCallback);
 }
 
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
@@ -242,14 +237,4 @@ void vcuPingCallback(const std_msgs::Float64::ConstPtr& msg){
   const char *buffer_out = vcu_ping_string.c_str();
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending vcu ping");
-}
-
-void velocityCallback(const arc_msgs::State::ConstPtr& msg){
-  //Calculating velocity.
-  double vel = msg->pose_diff;
-  //Sending to NI.
-  std::string vel_string = "vi:" + convertDoubleToString(vel);
-  const char *buffer_out = vel_string.c_str();
-  if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
-        printErrorAndFinish("sending velocity_state");
 }
