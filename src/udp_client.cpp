@@ -143,7 +143,7 @@ void handleReceivedMsg(std::string msg){
   else if(kind == "rr") rear_right_pub.publish(ros_msg); 
   else if(kind == "am") vcu_controller_state_pub.publish(ros_msg);
   else if(kind == "cc") vcu_working_pub.publish(ros_msg);
-  else if(kind == "hn") SEND_NOTSTOP = false;
+  else if(kind == "hn") {SEND_NOTSTOP = false; std::cout << "End: " << ros::Time::now() << std::endl;}
   else std::cout<<"ARC INTERFACE: Cannot assign msg " << msg << std::endl;
  }
 
