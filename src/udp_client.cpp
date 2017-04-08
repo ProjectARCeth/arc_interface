@@ -14,6 +14,7 @@
 //Define Constants.
 const int BUFLEN = 512;
 float MAX_STEERING_ANGLE;
+float MAX_VELOCITY;
 int MY_PORT;
 int NI_PORT;
 int QUEUE_LENGTH;
@@ -63,6 +64,7 @@ int main(int argc, char** argv){
   ros::NodeHandle node;
   //Get constants from yaml file.
   node.getParam("/erod/MAX_STEERING_ANGLE", MAX_STEERING_ANGLE);
+  node.getParam("/safety/MAX_ABSOLUTE_VELOCITY", MAX_VELOCITY);
   node.getParam("/general/MY_PORT", MY_PORT);
   node.getParam("/general/NI_PORT", NI_PORT);
   node.getParam("/general/QUEUE_LENGTH", QUEUE_LENGTH);
@@ -195,6 +197,7 @@ void setUpRosInterface(ros::NodeHandle* node){
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   //Sending should velocity [m/s].
   double vel_should = msg->speed;
+  if(vel_should > 0.9*MAX_VELOCITY) vel_should = 0.9*MAX_VELOCITY;
   std::string vel_string = "vs:" + convertDoubleToString(vel_should);
   const char *buffer_out_vel = vel_string.c_str();
   if (sendto(sock, buffer_out_vel, sizeof(buffer_out_vel), 0, (struct sockaddr*) &si_NI, slen) == -1) 
