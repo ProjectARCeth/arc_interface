@@ -197,7 +197,7 @@ void setUpRosInterface(ros::NodeHandle* node){
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   //Sending should velocity [m/s].
   double vel_should = msg->speed;
-  if(vel_should > 0.9*MAX_VELOCITY) vel_should = 0.9*MAX_VELOCITY;
+  if(vel_should > 0.7*MAX_VELOCITY) vel_should = 0.7*MAX_VELOCITY;
   std::string vel_string = "vs:" + convertDoubleToString(vel_should);
   const char *buffer_out_vel = vel_string.c_str();
   if (sendto(sock, buffer_out_vel, sizeof(buffer_out_vel), 0, (struct sockaddr*) &si_NI, slen) == -1) 
