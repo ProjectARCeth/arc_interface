@@ -27,6 +27,7 @@ std::string VCU_CONTROLLER_STATE_TOPIC;
 std::string VCU_LAUNCHING_COMMAND_TOPIC;
 std::string VCU_PARAMETER_MODE_TOPIC;
 std::string VCU_WORKING_INTERFACE_TOPIC;
+
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
 int sock;
@@ -203,9 +204,9 @@ void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   if (sendto(sock, buffer_out_vel, sizeof(buffer_out_vel), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending velocity_should"); 
   //Sending should steering angle [deg, shifted]. 
-  double steering_should = (msg->steering_angle)/M_PI*180 + 1000;
-  if(steering_should < 1000 - MAX_STEERING_ANGLE) steering_should = 1000 - MAX_STEERING_ANGLE;
-  if(steering_should > 1000 + MAX_STEERING_ANGLE) steering_should = 1000 + MAX_STEERING_ANGLE;
+  double steering_should = (msg->steering_angle)/M_PI*180;
+  if(steering_should < - MAX_STEERING_ANGLE) steering_should = - MAX_STEERING_ANGLE;
+  if(steering_should > + MAX_STEERING_ANGLE) steering_should = + MAX_STEERING_ANGLE;
   std::string steering_string = "ss:" + convertDoubleToString(steering_should);
   const char *buffer_out_steering = steering_string.c_str();
   if (sendto(sock, buffer_out_steering, sizeof(buffer_out_steering), 0, (struct sockaddr*) &si_NI, slen) == -1) 
