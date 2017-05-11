@@ -21,6 +21,9 @@ target_link_libraries(conversion_test ${catkin_LIBRARIES})
 add_executable(controller_test test/controller_test.cpp)
 target_link_libraries(controller_test ${catkin_LIBRARIES})
 
+add_executable(lift_presentation src/lift_presentation.cpp)
+target_link_libraries(lift_presentation ${catkin_LIBRARIES})
+
 cs_install()
 cs_export()
 

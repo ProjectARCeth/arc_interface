@@ -34,6 +34,8 @@ int sock;
 socklen_t slen;
 //Notstop.
 bool SEND_NOTSTOP = true;
+//Rosbag play.
+bool rosbag_play = true;
 //Subscriber and publisher.
 ros::Publisher rear_left_pub;
 ros::Publisher rear_right_pub;
@@ -63,6 +65,8 @@ int main(int argc, char** argv){
   //Init ros.
   ros::init(argc, argv, "arc_interface");
   ros::NodeHandle node;
+  //Check rosbag.
+  if(strlen(*(argv + 1)) == 5) rosbag_play = false;
   //Get constants from yaml file.
   node.getParam("/erod/MAX_STEERING_ANGLE", MAX_STEERING_ANGLE);
   node.getParam("/safety/MAX_ABSOLUTE_VELOCITY", MAX_VELOCITY);
@@ -140,10 +144,14 @@ void handleReceivedMsg(std::string msg){
   if(kind == "si"){
     std_msgs::Float64 steering_msg;
     steering_msg.data = (value-1000)*M_PI/180;
-    steering_current_pub.publish(steering_msg);
+    if(!rosbag_play) steering_current_pub.publish(steering_msg);
   } 
-  else if(kind == "rl") rear_left_pub.publish(ros_msg); 
-  else if(kind == "rr") rear_right_pub.publish(ros_msg); 
+  else if(kind == "rl"){ 
+    if(!rosbag_play) rear_left_pub.publish(ros_msg); 
+  }
+  else if(kind == "rr"){
+    if(!rosbag_play) rear_right_pub.publish(ros_msg); 
+  }
   else if(kind == "am") vcu_controller_state_pub.publish(ros_msg);
   else if(kind == "cc") vcu_working_pub.publish(ros_msg);
   else if(kind == "hn") {SEND_NOTSTOP = false; std::cout << "End: " << ros::Time::now() << std::endl;}
@@ -225,7 +233,8 @@ void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg){
 
 void vcuParameterModeCallback(const std_msgs::Float64::ConstPtr& msg){
   //Getting mode.
-  double vcu_mode = msg->data;
+  double vcu_mode = 0.0;
+  //double vcu_mode = msg->data;
   //Sending to NI.
   std::string vcu_mode_string = "ec:" + convertDoubleToString(vcu_mode);
   const char *buffer_out = vcu_mode_string.c_str();
