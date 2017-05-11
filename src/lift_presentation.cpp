@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string>
 #include <sys/socket.h>
+#include <signal.h>
 
 #include <ackermann_msgs/AckermannDrive.h>
 
@@ -16,6 +17,7 @@ int MY_PORT;
 int NI_PORT;
 int QUEUE_LENGTH;
 std::string STELLGROESSEN_TOPIC;
+double time_start;
 
 //Network.
 struct sockaddr_in si_me, si_other, si_NI;
@@ -35,6 +37,7 @@ int main(int argc, char** argv){
   //Init ros.
   ros::init(argc, argv, "arc_interface");
   ros::NodeHandle node;
+  time_start = ros::Time::now().toSec();
   //Get constants from yaml file.
   node.getParam("/erod/MAX_STEERING_ANGLE", MAX_STEERING_ANGLE);
   node.getParam("/safety/MAX_ABSOLUTE_VELOCITY", MAX_VELOCITY);
@@ -64,7 +67,7 @@ int main(int argc, char** argv){
   if (sendto(sock, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_NI, slen) == -1) 
         printErrorAndFinish("sending vcu launching");
   //Listening for and sending data.
-  while(ros::ok()){
+  while(ros::Time::now().toSec()-time_start<240 && ros::ok()){
     //Sending.
     ros::spinOnce();
   }
@@ -106,7 +109,7 @@ void setUpNetwork(){
 }
 
 void printErrorAndFinish(std::string reason){
-  std::cout << "ARC_INTERFACE: Error due to " << reason << std::endl;
+  //std::cout << "ARC_INTERFACE: Error due to " << reason << std::endl;
   //Finish ros and program.
   ros::shutdown();
   exit(0);
@@ -119,8 +122,7 @@ void setUpRosInterface(ros::NodeHandle* node){
 
 void stellgroessenCallback(const ackermann_msgs::AckermannDrive::ConstPtr& msg){
   //Sending should velocity [m/s].
-  double vel_should = msg->speed;
-  if(vel_should > 0.7*MAX_VELOCITY) vel_should = 0.7*MAX_VELOCITY;
+  double vel_should = msg->speed*2.2;
   std::string vel_string = "vs:" + convertDoubleToString(vel_should);
   const char *buffer_out_vel = vel_string.c_str();
   if (sendto(sock, buffer_out_vel, sizeof(buffer_out_vel), 0, (struct sockaddr*) &si_NI, slen) == -1) 
