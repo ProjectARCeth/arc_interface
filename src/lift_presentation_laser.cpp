@@ -56,15 +56,16 @@ void cloudCallback(const sensor_msgs::PointCloud2& msg){
   //Select candidate points.
   for(int i = 0; i<cloud.points.size(); ++i){
     //Cones located in limited lane, y constraint.
-    if(cloud.points[i].y <= 1.5 && cloud.points[i].y >= -1.5){
+    if(cloud.points[i].y <= 1.5 && cloud.points[i].y >= -2.4){
     //Cones only in front of car, visual detection lonely possible here.
-    if(cloud.points[i].x <= 3.0 && cloud.points[i].x >= -2.5){
+    if(cloud.points[i].x <= 1.5 && cloud.points[i].x >= -2.5){
     //Due to its white color the cones refelcted beams should have high intensity.
       label_cloud.push_back(cloud.points[i]);
     }}
   }
   //Publish labeled cloud.
   sensor_msgs::PointCloud2 label_cloud_msg = cloudToMsg(label_cloud);
+  label_cloud_msg.header.frame_id = msg.header.frame_id;
   labeled_cloud_pub.publish(label_cloud_msg);
 }
 
@@ -92,13 +93,24 @@ int main(int argc, char** argv){
   if ((sock_=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) printError("socket");
   if(bind(sock_, (struct sockaddr*)&si_me_, sizeof(si_me_)) == -1) printError("binding");
   //Send steering msg.
-  std::ostringstream stream;
-  stream << 1000.0;
-  std::string value_string = stream.str();
-  std::string sending = "ss:" + value_string;
+  std::string sending = "cc:5";
   const char *buffer_out = sending.c_str();
-  //Sending to VCU.
   if (sendto(sock_, buffer_out, sizeof(buffer_out), 0, (struct sockaddr*) &si_VCU_, slen_) == -1) 
+    printError("sending ");
+  ros::Duration(0.5).sleep();
+  sending = "am:1";
+  const char *buffer_out_am = sending.c_str();
+  if (sendto(sock_, buffer_out_am, sizeof(buffer_out_am), 0, (struct sockaddr*) &si_VCU_, slen_) == -1) 
+    printError("sending ");
+  ros::Duration(0.5).sleep();
+  sending = "ss:1003";
+  const char *buffer_out_ss = sending.c_str();
+  if (sendto(sock_, buffer_out_ss, sizeof(buffer_out_ss), 0, (struct sockaddr*) &si_VCU_, slen_) == -1) 
+    printError("sending ");
+  ros::Duration(2.5).sleep();
+  sending = "am:0";
+  const char *buffer_out_am_out = sending.c_str();
+  if (sendto(sock_, buffer_out_am_out, sizeof(buffer_out_am_out), 0, (struct sockaddr*) &si_VCU_, slen_) == -1) 
     printError("sending ");
   //Init pubs & subs.
   labeled_cloud_pub = node.advertise<sensor_msgs::PointCloud2>("/labeled_points", 10);
