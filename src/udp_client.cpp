@@ -233,7 +233,7 @@ void vcuLaunchingCallback(const std_msgs::Bool::ConstPtr& msg){
 
 void vcuParameterModeCallback(const std_msgs::Float64::ConstPtr& msg){
   //Getting mode.
-  double vcu_mode = 0.0;
+  double vcu_mode = 1.0;
   //double vcu_mode = msg->data;
   //Sending to NI.
   std::string vcu_mode_string = "ec:" + convertDoubleToString(vcu_mode);
